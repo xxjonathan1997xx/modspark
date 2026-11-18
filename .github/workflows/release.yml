@@ -23,3 +23,9 @@ jobs:
       - run: npm run release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # electron-builder leaves the release body empty; set it explicitly (links the code signing policy).
+      - name: Set release notes
+        shell: bash
+        run: gh release edit "${GITHUB_REF_NAME}" --notes "$(node -p "require('./electron-builder.config.cjs').releaseInfo.releaseNotes")"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
