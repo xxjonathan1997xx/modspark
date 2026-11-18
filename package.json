@@ -1,6 +1,6 @@
 {
   "name": "modspark",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "An open-source manager for community game trainer packages.",
   "main": "electron/main.cjs",
