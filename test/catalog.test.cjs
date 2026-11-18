@@ -161,3 +161,10 @@ test('a package id installed from one catalog is not overwritten by another cata
   await assert.rejects(c.installPackage({ packagesRoot: f.root, pkg: cat.packages[0], source: other, catalogName: 'Second', options: opts }), /already installed from First/)
   assert.equal((await c.listInstalled(f.root))[0].catalogName, 'First')
 })
+
+test('catalog accepts gog: game ids', () => {
+  const f = fixture()
+  const d = structuredClone(f.doc)
+  d.packages[0].games = ['gog:1207658924', 'steam:1']
+  assert.doesNotThrow(() => c.validateCatalog(d, opts))
+})

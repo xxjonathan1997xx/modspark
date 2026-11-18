@@ -11,7 +11,7 @@ const MAX_CATALOG_BYTES = 5 * 1024 * 1024
 const MAX_FILE_BYTES = 1024 * 1024 * 1024
 const ID_RE = /^[a-z0-9][a-z0-9._-]{0,63}$/
 const VERSION_RE = /^[0-9A-Za-z][0-9A-Za-z.+-]{0,31}$/
-const GAME_RE = /^(steam:\d{1,12}|epic:[A-Za-z0-9._-]{1,128})$/
+const GAME_RE = /^(steam:\d{1,12}|epic:[A-Za-z0-9._-]{1,128}|gog:\d{1,20})$/
 const SHA256_RE = /^[a-f0-9]{64}$/
 const SEGMENT_RE = /^[A-Za-z0-9._ ()-]{1,128}$/
 const RESERVED_RE = /^(con|prn|aux|nul|com\d|lpt\d)(\..*)?$/i
@@ -104,7 +104,7 @@ function validateCatalog(catalog, options = {}) {
     if (!VERSION_RE.test(pkg?.version ?? '')) errors.push(`${where}.version is invalid`)
     for (const field of ['author', 'license']) if (typeof pkg?.[field] !== 'string' || !pkg[field]) errors.push(`${where}.${field} is required`)
     if (pkg?.homepage !== undefined) checkUrl(pkg.homepage, `${where}.homepage`, errors, { allowFileUrls: false })
-    if (!Array.isArray(pkg?.games) || !pkg.games.length || pkg.games.some(g => !GAME_RE.test(g))) errors.push(`${where}.games must list ids like "steam:1091500" or "epic:AppName"`)
+    if (!Array.isArray(pkg?.games) || !pkg.games.length || pkg.games.some(g => !GAME_RE.test(g))) errors.push(`${where}.games must list ids like "steam:1091500", "epic:AppName" or "gog:1207658924"`)
     if (pkg?.gameVersions !== undefined && (!Array.isArray(pkg.gameVersions) || pkg.gameVersions.some(v => typeof v !== 'string'))) errors.push(`${where}.gameVersions must be strings`)
     if (pkg?.gameBuilds !== undefined && (!Array.isArray(pkg.gameBuilds) || pkg.gameBuilds.some(v => typeof v !== 'string' || !v))) errors.push(`${where}.gameBuilds must be non-empty strings`)
     if (pkg?.requires !== undefined) {

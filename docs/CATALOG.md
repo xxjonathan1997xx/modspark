@@ -57,7 +57,7 @@ The signature proves who published the catalog. It does not prove the publisher 
 | --- | --- |
 | `id` | `a-z0-9._-`, starting with a letter or digit, at most 64 characters, unique within the catalog |
 | `version` | `0-9A-Za-z.+-`, at most 32 characters |
-| `games` | `steam:<appid>` or `epic:<AppName>`, matching what ModSpark's library scan reports |
+| `games` | `steam:<appid>`, `epic:<AppName>` or `gog:<gameID>`, matching what ModSpark's library scan reports |
 | `requires` | ids of entries in `prerequisites` |
 | `gameVersions` | optional, human-readable versions shown to the user |
 | `gameBuilds` | optional. These are exact Steam `buildid` or Epic `AppVersionString` values. ModSpark compares them with the installed game and warns, without blocking, when they don't match. |

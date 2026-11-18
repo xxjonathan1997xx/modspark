@@ -1,5 +1,24 @@
 const fs = require('node:fs/promises')
 const path = require('node:path')
+const { execFile } = require('node:child_process')
+
+const GOG_KEY = 'HKLM\\SOFTWARE\\WOW6432Node\\GOG.com\\Games'
+
+// Parses `reg query <key> /s` output into { subkeyName: { valueName: data } }.
+function parseRegQuery(text) {
+  const keys = {}
+  let current = null
+  for (const line of text.split(/\r?\n/)) {
+    if (/^HKEY_/i.test(line)) { current = keys[line.trim().split('\\').pop()] = {}; continue }
+    const m = current && line.match(/^\s+(\S+)\s+REG_\w+\s+(.*)$/)
+    if (m) current[m[1]] = m[2].trim()
+  }
+  return keys
+}
+
+const readGogRegistry = () => new Promise(resolve => {
+  execFile('reg', ['query', GOG_KEY, '/s'], { windowsHide: true }, (error, stdout) => resolve(error ? '' : stdout))
+})
 
 function parseVdf(text) {
   const tokens = [...text.matchAll(/"((?:\\.|[^"\\])*)"|\{|\}/g)].map(m => m[1] ?? m[0])
@@ -34,7 +53,7 @@ async function readLibraries(steamRoot) {
   }
 }
 
-async function scanInstalledGames({ platform = process.platform, env = process.env, steamRoots, epicManifestDir } = {}) {
+async function scanInstalledGames({ platform = process.platform, env = process.env, steamRoots, epicManifestDir, gogRegistry = readGogRegistry } = {}) {
   if (platform !== 'win32') return []
   const roots = steamRoots ?? [
     path.join(env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)', 'Steam'),
@@ -77,7 +96,13 @@ async function scanInstalledGames({ platform = process.platform, env = process.e
       } catch {}
     }
   } catch {}
+  for (const entry of Object.values(parseRegQuery(await gogRegistry()))) {
+    if (!/^\d+$/.test(entry.gameID ?? '') || !entry.path) continue
+    const installed = await fs.stat(entry.path).then(s => s.isDirectory()).catch(() => false)
+    const id = `gog:${entry.gameID}`
+    found.set(id, { id, title: entry.gameName || `GOG game ${entry.gameID}`, source: 'GOG', installPath: entry.path, installed, build: entry.buildId || entry.ver || undefined })
+  }
   return [...found.values()].filter(game => game.installed).sort((a, b) => a.title.localeCompare(b.title))
 }
 
-module.exports = { parseVdf, scanInstalledGames }
+module.exports = { parseVdf, parseRegQuery, scanInstalledGames }

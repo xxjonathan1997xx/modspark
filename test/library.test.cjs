@@ -3,7 +3,7 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs/promises')
 const os = require('node:os')
 const path = require('node:path')
-const { parseVdf, scanInstalledGames } = require('../electron/library.cjs')
+const { parseVdf, parseRegQuery, scanInstalledGames } = require('../electron/library.cjs')
 
 const fixtures = path.join(__dirname, 'fixtures')
 
@@ -54,4 +54,44 @@ test('scanInstalledGames detects installed Steam and Epic games from fixture man
 
 test('scanInstalledGames returns no games on unsupported platforms', async () => {
   assert.deepEqual(await scanInstalledGames({ platform: 'linux' }), [])
+})
+
+const regOutput = installPath => [
+  '',
+  'HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\GOG.com\\Games\\1207658924',
+  '    gameID    REG_SZ    1207658924',
+  '    gameName    REG_SZ    Example GOG Game',
+  `    path    REG_SZ    ${installPath}`,
+  '    buildId    REG_SZ    51234',
+  '    ver    REG_SZ    1.4.2',
+  '',
+  'HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\GOG.com\\Games\\1111111111',
+  '    gameID    REG_SZ    1111111111',
+  '    gameName    REG_SZ    Uninstalled Game',
+  '    path    REG_SZ    C:\\does\\not\\exist',
+  '',
+].join('\r\n')
+
+test('parseRegQuery groups values under their subkey', () => {
+  const keys = parseRegQuery(regOutput('D:\\Games\\Example'))
+  assert.equal(keys['1207658924'].gameName, 'Example GOG Game')
+  assert.equal(keys['1207658924'].path, 'D:\\Games\\Example')
+  assert.equal(keys['1111111111'].gameID, '1111111111')
+})
+
+test('scanInstalledGames detects installed GOG games and skips missing folders', async () => {
+  const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'modspark-gog-'))
+  try {
+    const games = await scanInstalledGames({
+      platform: 'win32', steamRoots: [], epicManifestDir: path.join(temp, 'none'),
+      gogRegistry: async () => regOutput(temp),
+    })
+    assert.deepEqual(games.map(g => [g.id, g.title, g.source, g.build, g.installPath]), [['gog:1207658924', 'Example GOG Game', 'GOG', '51234', temp]])
+  } finally {
+    await fs.rm(temp, { recursive: true, force: true })
+  }
+})
+
+test('scanInstalledGames tolerates a missing GOG registry key', async () => {
+  assert.deepEqual(await scanInstalledGames({ platform: 'win32', steamRoots: [], epicManifestDir: 'Z:\\none', gogRegistry: async () => '' }), [])
 })

@@ -10,7 +10,7 @@ Installers are currently **unsigned**, so Windows SmartScreen may warn you befor
 
 ## What it does
 
-- **Library:** scans Steam and Epic installs and shows each game's build number. Steam cover art is optional and off by default.
+- **Library:** scans Steam, Epic and GOG Galaxy installs and shows each game's build number. Steam cover art is optional and off by default.
 - **Signed catalogs:** add a catalog URL plus the publisher's Ed25519 key. ModSpark refuses any catalog whose signature doesn't match. New users can add the official catalog in one click.
 - **Verified installs:** every file is size- and SHA-256-checked, staged, and kept inside ModSpark's own folder before it's installed.
 - **Requirements:** detects runtimes a package needs. An installer runs only after you confirm and its hash checks out.
