@@ -17,11 +17,13 @@ const emptyCatalog = { sources: [], packages: [], prerequisites: [], installed: 
 const cleanError = error => String(error?.message || error).replace(/^Error invoking remote method '[^']+': (Error: )?/, '')
 
 function App() {
-  const [games, setGames] = useState(demos)
-  const [selectedId, setSelectedId] = useState(demos[0].id)
+  const api = window.modSpark
+  const [games, setGames] = useState(() => api ? [] : demos)
+  const [selectedId, setSelectedId] = useState(() => api ? '' : demos[0].id)
   const [query, setQuery] = useState('')
   const [tab, setTab] = useState('Library')
   const [scanning, setScanning] = useState(false)
+  const [scannedAt, setScannedAt] = useState(null)
   const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState('')
   const [cat, setCat] = useState(emptyCatalog)
@@ -32,7 +34,6 @@ function App() {
   })
   const searchRef = useRef(null)
   const [updateState, setUpdateState] = useState({ phase: 'unconfigured', message: 'No release feed is configured.' })
-  const api = window.modSpark
   const steamCover = game => {
     if (!coverArtEnabled) return null
     const appId = /^steam:(\d+)$/.exec(game?.id ?? '')?.[1]
@@ -54,10 +55,26 @@ function App() {
 
   useEffect(() => {
     if (!api) return
+    let cancelled = false
+    const loadLibrary = async () => {
+      try {
+        const cached = await api.cachedGames()
+        if (cancelled) return
+        if (cached?.games?.length) {
+          setGames(cached.games.map(game => ({ ...game, icon: game.title.slice(0, 2).toUpperCase() })))
+          setSelectedId(cached.games[0].id)
+          setScannedAt(cached.scannedAt)
+          return
+        }
+      } catch {}
+      if (!cancelled) scan()
+    }
+    loadLibrary()
     api.systemInfo().then(setInfo)
     api.getUpdateState().then(setUpdateState)
     api.catalog.refresh().then(setCat).catch(error => setNotice(cleanError(error)))
-    return api.onUpdateState(setUpdateState)
+    const unsubscribe = api.onUpdateState(setUpdateState)
+    return () => { cancelled = true; unsubscribe() }
   }, [])
 
   async function run(label, action, success) {
@@ -84,16 +101,17 @@ function App() {
   }
 
   async function scan() {
+    if (!api) { setNotice('Preview mode — launch the desktop app to scan installed games'); return }
     setScanning(true)
     setNotice('')
     try {
-      const detected = await api?.scanGames()
+      const detected = await api.scanGames()
+      const library = detected.map(game => ({ ...game, icon: game.title.slice(0, 2).toUpperCase() }))
+      setGames(library)
+      setSelectedId(library[0]?.id || '')
+      setScannedAt(new Date().toISOString())
       if (detected?.length) {
-        setGames(detected.map(game => ({ ...game, icon: game.title.slice(0, 2).toUpperCase() })))
-        setSelectedId(detected[0].id)
         setNotice(`${detected.length} installed games found`)
-      } else {
-        setNotice(api ? 'No Steam or Epic games found in the standard library locations' : 'Preview mode — launch the desktop app to scan installed games')
       }
     } catch {
       setNotice('Could not scan Steam libraries')
@@ -124,7 +142,8 @@ function App() {
           <span className={`availability ${kind}`}><span className="dot" />{label}</span>
         </button>
       })}
-      {!filtered.length && <div className="empty">No games match “{query}”</div>}
+      {!games.length && !scanning && <div className="library-empty"><strong>No Steam or Epic games found</strong><span>Install a game or check that your library folders are available, then scan again.</span></div>}
+      {!!games.length && !filtered.length && <div className="empty">No games match “{query}”</div>}
     </div>
   </>
 
@@ -206,9 +225,14 @@ function App() {
         <div className="searchbar"><Search size={17} /><input ref={searchRef} aria-label="Search games" placeholder="Search your games…" value={query} onChange={e => setQuery(e.target.value)} /><kbd>Ctrl K</kbd></div>
         <div className="heading-row">
           <div><h1>{tab === 'Library' ? 'Your library' : tab}</h1><p>{tab === 'Library' ? 'Pick a game to see its community packages.' : tab === 'Packages' ? 'Signed community catalogs and the packages they offer.' : tab === 'Downloads' ? 'Packages installed on this PC.' : 'Folders, updates and app details.'}</p></div>
+          <div className="heading-actions">
           {tab === 'Packages'
             ? <button className="scan-button" onClick={() => run('refresh', () => api.catalog.refresh(), 'Catalogs refreshed.')} disabled={!!busy}><RefreshCw size={15} className={busy === 'refresh' ? 'spin' : ''} />Refresh catalogs</button>
-            : <button className="scan-button" onClick={scan} disabled={scanning}><RefreshCw size={15} className={scanning ? 'spin' : ''} />{scanning ? 'Scanning…' : 'Scan for games'}</button>}
+            : <>
+              {scannedAt && Number.isFinite(new Date(scannedAt).getTime()) && <span className="last-scanned">Last scanned <time dateTime={scannedAt}>{new Date(scannedAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}</time></span>}
+              <button className="scan-button" onClick={scan} disabled={scanning}><RefreshCw size={15} className={scanning ? 'spin' : ''} />{scanning ? 'Scanning…' : 'Scan for games'}</button>
+            </>}
+          </div>
         </div>
         {tab === 'Packages' ? catalogPanel : tab === 'Downloads' ? installedPanel : tab === 'Settings' ? settingsPanel : gameList}
         {notice && <div className="notice" role="status">{notice}<button onClick={() => setNotice('')} aria-label="Dismiss">×</button></div>}
