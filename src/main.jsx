@@ -178,7 +178,7 @@ function App() {
           <span className={`availability ${kind}`}><span className="dot" />{label}</span>
         </button>
       })}
-      {!games.length && !scanning && <div className="library-empty"><strong>No Steam or Epic games found</strong><span>Install a game or check that your library folders are available, then scan again.</span></div>}
+      {!games.length && !scanning && <div className="library-empty"><strong>No Steam, Epic or GOG games found</strong><span>Install a game or check that your library folders are available, then scan again.</span></div>}
       {!!games.length && !filtered.length && <div className="empty">No games match “{query}”</div>}
     </div>
   </>
@@ -190,7 +190,7 @@ function App() {
     {cat.sources.map(source => <div key={source.id} className="source-row">
       {source.error ? <AlertTriangle size={15} className="warn" /> : <ShieldCheck size={15} className="ok" />}
       <div className="source-text"><strong>{source.name || source.url}</strong><span>{source.error || `${source.packageCount} package(s) · signature verified`}</span><code>{source.url}</code></div>
-      <button className="icon-button" aria-label="Remove catalog" disabled={!!busy} onClick={() => run('remove', () => api.catalog.removeSource(source.id))}><Trash2 size={14} /></button>
+      <button className="icon-button" aria-label={`Remove catalog ${source.name || source.url}`} disabled={!!busy} onClick={() => run('remove', () => api.catalog.removeSource(source.id))}><Trash2 size={14} /></button>
     </div>)}
     <form className="source-form" onSubmit={e => { e.preventDefault(); run('add', () => api.catalog.addSource(newSource.url, newSource.publicKey), 'Catalog added and verified.').then(() => setNewSource({ url: '', publicKey: '' })) }}>
       <input aria-label="Catalog URL" placeholder="https://example.org/catalog.json" value={newSource.url} onChange={e => setNewSource({ ...newSource, url: e.target.value })} required />
@@ -238,9 +238,9 @@ function App() {
         {progress && <span className="install-progress-fill" style={{ width: `${Math.min(100, progress.done / progress.total * 100)}%` }} />}
         <span className="install-progress-label">{progress ? `${(progress.done / 1048576).toFixed(1)} / ${(progress.total / 1048576).toFixed(1)} MB` : 'Update'}</span>
       </button>}
-      {pkg.launch && <button className="icon-button" aria-label="Launch" disabled={!!busy} onClick={() => launch(pkg)}><Play size={14} /></button>}
-      <button className="icon-button" aria-label="Open folder" onClick={() => api?.openFolder(pkg.path)}><Folder size={14} /></button>
-      <button className="icon-button" aria-label="Uninstall" disabled={!!busy} onClick={() => run('uninstall', () => api.catalog.uninstall(pkg.id), `${pkg.name} removed.`)}><Trash2 size={14} /></button>
+      {pkg.launch && <button className="icon-button" aria-label={`Launch ${pkg.name}`} disabled={!!busy} onClick={() => launch(pkg)}><Play size={14} /></button>}
+      <button className="icon-button" aria-label={`Open ${pkg.name} folder`} onClick={() => api?.openFolder(pkg.path)}><Folder size={14} /></button>
+      <button className="icon-button" aria-label={`Uninstall ${pkg.name}`} disabled={!!busy} onClick={() => run('uninstall', () => api.catalog.uninstall(pkg.id), `${pkg.name} removed.`)}><Trash2 size={14} /></button>
       </div>
     })}
   </div>
