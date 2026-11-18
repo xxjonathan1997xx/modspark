@@ -142,3 +142,22 @@ test('compatibility compares declared game builds with the detected build', () =
   assert.equal(c.compatibility({}, '456'), 'unknown')
   assert.equal(c.compatibility({ gameBuilds: ['123'] }, undefined), 'unknown')
 })
+
+test('install reports byte progress up to the package total', async () => {
+  const f = fixture()
+  const cat = await c.loadCatalog(f.source, opts)
+  const events = []
+  await c.installPackage({ packagesRoot: f.root, pkg: cat.packages[0], source: f.source, catalogName: cat.name, options: { ...opts, onProgress: e => events.push(e) } })
+  const total = cat.packages[0].files[0].size
+  assert.ok(events.length > 0)
+  assert.deepEqual(events.at(-1), { done: total, total })
+})
+
+test('a package id installed from one catalog is not overwritten by another catalog', async () => {
+  const f = fixture()
+  const cat = await c.loadCatalog(f.source, opts)
+  await c.installPackage({ packagesRoot: f.root, pkg: cat.packages[0], source: f.source, catalogName: 'First', options: opts })
+  const other = { ...f.source, id: 'other-source' }
+  await assert.rejects(c.installPackage({ packagesRoot: f.root, pkg: cat.packages[0], source: other, catalogName: 'Second', options: opts }), /already installed from First/)
+  assert.equal((await c.listInstalled(f.root))[0].catalogName, 'First')
+})

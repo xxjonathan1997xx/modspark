@@ -172,6 +172,7 @@ async function downloadVerified(url, dest, expected, options) {
       if (total > expected.size) throw new Error(`${path.basename(dest)} is larger than its catalog size`)
       hash.update(chunk)
       await handle.write(chunk)
+      options?.onChunk?.(chunk.length)
     }
     if (total !== expected.size) throw new Error(`${path.basename(dest)} size ${total} does not match catalog size ${expected.size}`)
     const digest = hash.digest('hex')
@@ -209,12 +210,19 @@ async function installPackage({ packagesRoot, pkg, source, catalogName, options 
   if (!ID_RE.test(pkg.id) || !VERSION_RE.test(pkg.version)) throw new Error('Invalid package id or version')
   await fsp.mkdir(packagesRoot, { recursive: true })
   const finalDir = containedPath(packagesRoot, pkg.id)
+  const existing = await fsp.readFile(path.join(finalDir, 'modspark-install.json'), 'utf8').then(JSON.parse, () => null)
+  if (existing && existing.source?.id !== source.id) {
+    throw new Error(`"${existing.name}" (${pkg.id}) is already installed from ${existing.catalogName}. Uninstall it before installing the same id from ${catalogName}.`)
+  }
+  const total = pkg.files.reduce((sum, f) => sum + f.size, 0)
+  let done = 0
+  const fileOptions = { ...options, onChunk: n => { done += n; options.onProgress?.({ done, total }) } }
   const staging = await fsp.mkdtemp(path.join(packagesRoot, '.staging-'))
   try {
     for (const file of pkg.files) {
       const dest = containedPath(staging, file.path)
       await fsp.mkdir(path.dirname(dest), { recursive: true })
-      await downloadVerified(file.url, dest, file, options)
+      await downloadVerified(file.url, dest, file, fileOptions)
     }
     const record = {
       id: pkg.id, name: pkg.name, version: pkg.version, games: pkg.games,

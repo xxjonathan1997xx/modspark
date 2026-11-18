@@ -51,7 +51,15 @@ function createWindow() {
   else window.loadFile(path.join(__dirname, '../dist/index.html'))
 }
 
-ipcMain.handle('games:scan', scanInstalledGames)
+const gamesCacheFile = () => path.join(app.getPath('userData'), 'games.json')
+ipcMain.handle('games:scan', async () => {
+  const games = await scanInstalledGames()
+  await fs.mkdir(app.getPath('userData'), { recursive: true })
+  await fs.writeFile(gamesCacheFile(), JSON.stringify({ scannedAt: new Date().toISOString(), games }, null, 2))
+  return games
+})
+// Last scan result, or null if the library was never scanned on this PC.
+ipcMain.handle('games:cached', () => fs.readFile(gamesCacheFile(), 'utf8').then(JSON.parse, () => null))
 ipcMain.handle('system:open-folder', async (_event, folderPath) => {
   if (typeof folderPath !== 'string' || !path.isAbsolute(folderPath)) return false
   await shell.openPath(folderPath)
@@ -140,10 +148,17 @@ ipcMain.handle('catalog:remove-source', async (_event, id) => {
   await refreshCatalogs()
   return catalogState()
 })
-ipcMain.handle('catalog:install', async (_event, { sourceId, packageId } = {}) => {
+ipcMain.handle('catalog:install', async (event, { sourceId, packageId } = {}) => {
   const pkg = findInCatalog(sourceId, 'packages', packageId)
   const source = (await readSources()).find(s => s.id === sourceId)
-  await catalog.installPackage({ packagesRoot: packagesRoot(), pkg, source, catalogName: loaded.get(sourceId).catalog.name, options: { allowFileUrls } })
+  let last = 0
+  const onProgress = ({ done, total }) => {
+    const now = Date.now()
+    if (done < total && now - last < 100) return
+    last = now
+    if (!event.sender.isDestroyed()) event.sender.send('catalog:progress', { packageId, done, total })
+  }
+  await catalog.installPackage({ packagesRoot: packagesRoot(), pkg, source, catalogName: loaded.get(sourceId).catalog.name, options: { allowFileUrls, onProgress } })
   return catalogState()
 })
 ipcMain.handle('catalog:uninstall', async (_event, id) => {

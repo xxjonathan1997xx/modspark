@@ -2,6 +2,12 @@ const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('modSpark', {
   scanGames: () => ipcRenderer.invoke('games:scan'),
+  cachedGames: () => ipcRenderer.invoke('games:cached'),
+  onInstallProgress: (callback) => {
+    const listener = (_event, progress) => callback(progress)
+    ipcRenderer.on('catalog:progress', listener)
+    return () => ipcRenderer.removeListener('catalog:progress', listener)
+  },
   openFolder: (folderPath) => ipcRenderer.invoke('system:open-folder', folderPath),
   systemInfo: () => ipcRenderer.invoke('system:info'),
   getUpdateState: () => ipcRenderer.invoke('updates:get-state'),
