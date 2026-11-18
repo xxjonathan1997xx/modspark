@@ -5,6 +5,7 @@ import './styles.css'
 
 const OFFICIAL_URL = 'https://raw.githubusercontent.com/xxjonathan1997xx/modspark-catalog/main/catalog.json'
 const OFFICIAL_KEY = 'MCowBQYDK2VwAyEAZgCVC7ij799AAgYeXIxI5nXWKa8XzlczeaaizWgsd3o='
+const COVER_ART_KEY = 'modspark.coverArt'
 // Browser-preview rows only. The desktop app replaces them with a real scan.
 const demos = [
   { id: 'steam:1091500', title: 'Cyberpunk 2077', source: 'Steam', icon: '2077' },
@@ -14,10 +15,6 @@ const demos = [
 ]
 const emptyCatalog = { sources: [], packages: [], prerequisites: [], installed: [] }
 const cleanError = error => String(error?.message || error).replace(/^Error invoking remote method '[^']+': (Error: )?/, '')
-const steamCover = game => {
-  const appId = /^steam:(\d+)$/.exec(game?.id ?? '')?.[1]
-  return appId ? `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/header.jpg` : null
-}
 
 function App() {
   const [games, setGames] = useState(demos)
@@ -30,9 +27,17 @@ function App() {
   const [cat, setCat] = useState(emptyCatalog)
   const [newSource, setNewSource] = useState({ url: '', publicKey: '' })
   const [info, setInfo] = useState(null)
+  const [coverArtEnabled, setCoverArtEnabled] = useState(() => {
+    try { return window.localStorage.getItem(COVER_ART_KEY) === 'true' } catch { return false }
+  })
   const searchRef = useRef(null)
   const [updateState, setUpdateState] = useState({ phase: 'unconfigured', message: 'No release feed is configured.' })
   const api = window.modSpark
+  const steamCover = game => {
+    if (!coverArtEnabled) return null
+    const appId = /^steam:(\d+)$/.exec(game?.id ?? '')?.[1]
+    return appId ? `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/header.jpg` : null
+  }
   const selected = games.find(game => game.id === selectedId) || games[0]
   const selectedCover = steamCover(selected)
   const filtered = useMemo(() => games.filter(game => game.title.toLowerCase().includes(query.toLowerCase())), [games, query])
@@ -68,6 +73,15 @@ function App() {
   }
 
   const addOfficialCatalog = () => run('official', () => api.catalog.addSource(OFFICIAL_URL, OFFICIAL_KEY), 'Official catalog added and verified.')
+
+  function changeCoverArtPreference(enabled) {
+    try {
+      window.localStorage.setItem(COVER_ART_KEY, String(enabled))
+      setCoverArtEnabled(enabled)
+    } catch {
+      setCoverArtEnabled(false)
+    }
+  }
 
   async function scan() {
     setScanning(true)
@@ -140,6 +154,11 @@ function App() {
   const settingsPanel = <div className="panel-scroll">
     <div className="section-title">ABOUT</div>
     <div className="source-row"><Sparkles size={15} className="ok" /><div className="source-text"><strong>ModSpark {info ? `v${info.appVersion}` : ''}</strong><span>MIT licensed. No ads, no account, no telemetry.{info ? ` ${info.platform} ${info.architecture}${info.packaged ? '' : ' · development build'}` : ''}</span></div></div>
+    <div className="section-title spaced">PRIVACY</div>
+    <div className="cover-art-setting">
+      <label><input type="checkbox" checked={coverArtEnabled} onChange={e => changeCoverArtPreference(e.target.checked)} />Show game cover art (loads images from Steam's servers)</label>
+      <p>Steam receives the game IDs.</p>
+    </div>
     <div className="section-title spaced">STORAGE</div>
     {info ? <>
       <div className="source-row"><Folder size={15} className="ok" /><div className="source-text"><strong>Installed packages</strong><code>{info.packagesPath}</code></div><button className="icon-button" aria-label="Open packages folder" onClick={() => api.openFolder(info.packagesPath)}><Folder size={14} /></button></div>
