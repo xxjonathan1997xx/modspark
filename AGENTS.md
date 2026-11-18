@@ -13,7 +13,8 @@ ModSpark is a clean-room, MIT-licensed Windows manager for community game-traine
 - `electron/preload.cjs`: the only bridge to the renderer (`window.modSpark`). The renderer passes ids, never URLs or paths to execute.
 - `src/main.jsx`: the whole UI.
 - `scripts/catalog-tool.cjs`: maintainer CLI (keygen, hash, sign, verify).
-- `electron-builder.config.cjs`: NSIS installer. An update feed is baked in only when `MODSPARK_UPDATE_URL` is set at build time.
+- `electron-builder.config.cjs`: NSIS installer. Updates come from GitHub Releases by default, and `MODSPARK_UPDATE_URL` overrides that with a generic host.
+- `.github/workflows/`: `ci.yml` runs the tests and build on every push and PR. `release.yml` publishes a GitHub Release on `v*` tags.
 
 ## Commands
 
@@ -28,10 +29,13 @@ ModSpark is a clean-room, MIT-licensed Windows manager for community game-traine
 - Never loosen https-only or contained paths in packaged builds. `allowFileUrls` exists for dev and tests only.
 - Renderer and catalog input is untrusted. Validate it in `catalog.cjs`, not in the UI.
 
+## Working alongside another agent
+
+Claude (Claude Code) and Codex both work on this repo, and `COORDINATION.md` is the shared task board. Before you start, read it, claim a task by putting your name in the Owner column, and only touch the files listed for that task. When you finish, set the status, add a line to its log, and commit with a clear message. Don't push tags or publish releases. The user does that.
+
 ## Open items (need people or accounts, not code)
 
 - A public catalog repository and its signing key.
-- A release host for `MODSPARK_UPDATE_URL`.
 - A code-signing certificate.
 
 ## History

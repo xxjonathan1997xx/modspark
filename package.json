@@ -9,9 +9,10 @@
     "dev": "concurrently -k \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && electron .\"",
     "build": "vite build",
     "start": "electron .",
-    "test": "node --test test/",
+    "test": "node --test",
     "catalog": "node scripts/catalog-tool.cjs",
-    "dist": "vite build && electron-builder --config electron-builder.config.cjs --publish never"
+    "dist": "vite build && electron-builder --config electron-builder.config.cjs --publish never",
+    "release": "vite build && electron-builder --config electron-builder.config.cjs --publish always"
   },
   "dependencies": {
     "electron-updater": "^6.3.9",
@@ -27,5 +28,10 @@
     "vite": "^6.0.5",
     "wait-on": "^8.0.1"
   },
-  "author": "ModSpark contributors"
+  "author": "ModSpark contributors",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xxjonathan1997xx/modspark.git"
+  },
+  "homepage": "https://github.com/xxjonathan1997xx/modspark"
 }

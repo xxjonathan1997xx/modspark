@@ -25,25 +25,22 @@ npm run dev
 
 Run the catalog tests with `npm test`.
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request or publishing a catalog.
+
 ## Build a Windows installer
 
 ```powershell
-$env:MODSPARK_UPDATE_URL = "https://your-host/modspark/"   # optional: enables auto-update
-npm run dist
+npm run dist      # local installer in release/, nothing is uploaded
 ```
 
-The output goes to `release/`. To ship a version, bump `version` in `package.json`, then run `npm run dist`. Upload `ModSpark Setup <version>.exe`, its `.blockmap`, and `latest.yml` to the update URL. Installed copies pick up the new version on their next start. Set `CSC_LINK` and `CSC_KEY_PASSWORD` to code-sign. Unsigned installers work, but SmartScreen will warn users.
-
-The library uses sample rows in browser preview mode. In the Electron app, **Scan for games** reads Steam's `libraryfolders.vdf` and `appmanifest_*.acf` files and Epic's `.item` manifests from standard Windows locations.
+**Releasing:** bump `version` in `package.json`, commit, then push a matching tag (`git tag v0.2.0; git push origin v0.2.0`). GitHub Actions builds the installer and publishes it as a GitHub Release. Installed copies of ModSpark see the new version on their next start and install it when the app closes. To use a different host instead, set `MODSPARK_UPDATE_URL` when building. Set `CSC_LINK` and `CSC_KEY_PASSWORD` to code-sign. Unsigned installers work, but SmartScreen will warn users.
 
 ## Roadmap
 
-Done: signed catalog format, verified installs, opt-in catalog sources, prerequisite detection and installers, game-build compatibility hints, launching packages, a Windows installer with an auto-update feed.
-
-Still to do. These steps need people or accounts, not code:
+The app supports signed catalogs, verified installs, opt-in catalog sources, prerequisite detection and installers, game-build compatibility hints, package launch, and a Windows installer with auto-update from GitHub Releases, and CI. The community catalog still needs an owner:
 
 1. Publish a first public catalog repository with contribution and review guidelines, plus its signing key.
-2. Pick a release host (GitHub Releases or any static host) and set `MODSPARK_UPDATE_URL`.
+2. Publish the repository and push a `v<version>` tag to create a GitHub release and its update feed.
 3. Get a code-signing certificate.
 
 ## License
