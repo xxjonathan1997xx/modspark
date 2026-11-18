@@ -12,6 +12,10 @@ const demos = [
 ]
 const emptyCatalog = { sources: [], packages: [], prerequisites: [], installed: [] }
 const cleanError = error => String(error?.message || error).replace(/^Error invoking remote method '[^']+': (Error: )?/, '')
+const steamCover = game => {
+  const appId = /^steam:(\d+)$/.exec(game?.id ?? '')?.[1]
+  return appId ? `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/header.jpg` : null
+}
 
 function App() {
   const [games, setGames] = useState(demos)
@@ -28,6 +32,7 @@ function App() {
   const [updateState, setUpdateState] = useState({ phase: 'unconfigured', message: 'No release feed is configured.' })
   const api = window.modSpark
   const selected = games.find(game => game.id === selectedId) || games[0]
+  const selectedCover = steamCover(selected)
   const filtered = useMemo(() => games.filter(game => game.title.toLowerCase().includes(query.toLowerCase())), [games, query])
   const installedById = useMemo(() => new Map(cat.installed.map(p => [p.id, p])), [cat.installed])
   const packagesFor = game => cat.packages.filter(p => p.games.includes(game?.id))
@@ -89,8 +94,12 @@ function App() {
     <div className="game-list">
       {filtered.map(game => {
         const [kind, label] = packageStatus(game)
+        const cover = steamCover(game)
         return <button key={game.id} className={`game-row ${selectedId === game.id ? 'selected' : ''}`} onClick={() => setSelectedId(game.id)}>
-          <span className={`game-icon icon-${game.icon.length > 2 ? 'wide' : ''}`}>{game.icon}</span>
+          <span className={`game-icon icon-${game.icon.length > 2 ? 'wide' : ''}`}>
+            {cover && <img src={cover} alt="" loading="lazy" onError={e => { e.currentTarget.hidden = true }} />}
+            {game.icon}
+          </span>
           <span className="game-title">{game.title}</span>
           <span className="source">{game.source || 'Steam'}</span>
           <span className={`availability ${kind}`}><span className="dot" />{label}</span>
@@ -182,7 +191,10 @@ function App() {
       </main>
       <aside className="details">
         {selected ? <>
-          <div className="game-art"><div className="art-orbit" /><div className="art-initial">{selected.icon}</div><div className="art-caption">{selected.title}</div></div>
+          <div className="game-art">
+            {selectedCover && <img className="game-art-cover" src={selectedCover} alt="" onError={e => { e.currentTarget.hidden = true }} />}
+            <div className="art-orbit" /><div className="art-initial">{selected.icon}</div><div className="art-caption">{selected.title}</div>
+          </div>
           <h2>{selected.title}</h2>
           <div className="meta"><span>Source</span><strong>{selected.source || 'Steam'}</strong></div>
           {selected.build && <div className="meta"><span>Game build</span><strong>{selected.build}</strong></div>}

@@ -1,0 +1,6 @@
+{
+  "AppName": "ExampleApp",
+  "DisplayName": "Example Epic Game",
+  "InstallLocation": "__EPIC_INSTALL__",
+  "AppVersionString": "2.4.1"
+}
