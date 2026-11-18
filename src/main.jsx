@@ -24,6 +24,7 @@ function App() {
   const [tab, setTab] = useState('Library')
   const [scanning, setScanning] = useState(false)
   const [scannedAt, setScannedAt] = useState(null)
+  const [installProgress, setInstallProgress] = useState(null)
   const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState('')
   const [cat, setCat] = useState(emptyCatalog)
@@ -74,19 +75,24 @@ function App() {
     api.getUpdateState().then(setUpdateState)
     api.catalog.refresh().then(setCat).catch(error => setNotice(cleanError(error)))
     const unsubscribe = api.onUpdateState(setUpdateState)
-    return () => { cancelled = true; unsubscribe() }
+    const unsubscribeProgress = api.onInstallProgress(progress => setInstallProgress(progress.done < progress.total ? progress : null))
+    return () => { cancelled = true; unsubscribe(); unsubscribeProgress() }
   }, [])
 
   async function run(label, action, success) {
     if (!api) { setNotice('Preview mode — catalogs and installs run in the desktop app.'); return }
     setBusy(label)
+    if (label === 'install') setInstallProgress(null)
     setNotice('')
     try {
       setCat(await action())
       if (success) setNotice(success)
     } catch (error) {
       setNotice(cleanError(error))
-    } finally { setBusy('') }
+    } finally {
+      setBusy('')
+      if (label === 'install') setInstallProgress(null)
+    }
   }
 
   const addOfficialCatalog = () => run('official', () => api.catalog.addSource(OFFICIAL_URL, OFFICIAL_KEY), 'Official catalog added and verified.')
@@ -260,7 +266,11 @@ function App() {
                     <button className="quiet-button" onClick={() => api?.openFolder(installed.path)}><Folder size={14} />Open</button>
                     <button className="quiet-button" disabled={!!busy} onClick={() => run('uninstall', () => api.catalog.uninstall(selectedPackage.id), `${selectedPackage.name} removed.`)}><Trash2 size={14} />Uninstall</button>
                   </div>
-                : <button className="install-button" disabled={!!busy || missing.length > 0} title={missing.length ? 'Install the missing requirements first' : ''} onClick={() => run('install', () => api.catalog.install(selectedPackage.sourceId, selectedPackage.id), `${selectedPackage.name} installed and verified.`)}><Download size={16} />{busy === 'install' ? 'Downloading and verifying…' : installed ? `Update to v${selectedPackage.version}` : 'Install package'}</button>}
+                : <button className={`install-button ${busy === 'install' && installProgress?.packageId === selectedPackage.id ? 'installing' : ''}`} disabled={!!busy || missing.length > 0} title={missing.length ? 'Install the missing requirements first' : ''} onClick={() => run('install', () => api.catalog.install(selectedPackage.sourceId, selectedPackage.id), `${selectedPackage.name} installed and verified.`)}>
+                  {busy === 'install' && installProgress?.packageId === selectedPackage.id
+                    ? <><span className="install-progress-fill" style={{ width: `${Math.min(100, installProgress.done / installProgress.total * 100)}%` }} /><span className="install-progress-label">{(installProgress.done / 1048576).toFixed(1)} MB / {(installProgress.total / 1048576).toFixed(1)} MB</span></>
+                    : <><Download size={16} />{busy === 'install' ? 'Downloading and verifying…' : installed ? `Update to v${selectedPackage.version}` : 'Install package'}</>}
+                </button>}
             </> : <>
               <div className="empty-package"><span className="empty-mark"><Layers3 size={17} /></span><strong>No package yet</strong><p>{cat.sources.length ? 'None of your catalogs has a package for this game.' : 'Add a community catalog to find packages.'}</p></div>
               {cat.sources.length

@@ -39,3 +39,5 @@ button:disabled{opacity:.55;cursor:default}
 .cover-art-setting p{margin:7px 0 0 22px;color:#8e9991;font-size:10px}
 
 .heading-actions{display:flex;align-items:center;gap:12px}.last-scanned{color:#818c84;font-size:10px;white-space:nowrap}.library-empty{display:grid;gap:7px;padding:32px 12px;color:#dfe5e0;font-size:12px}.library-empty span{color:#89938c;font-size:11px;line-height:1.5}
+
+.install-button.installing{position:relative;overflow:hidden;background:#203427}.install-progress-fill{position:absolute;inset:0 auto 0 0;background:#65d77f;opacity:.45}.install-progress-label{position:relative}
