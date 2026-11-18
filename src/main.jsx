@@ -44,6 +44,11 @@ function App() {
   const selectedCover = steamCover(selected)
   const filtered = useMemo(() => games.filter(game => game.title.toLowerCase().includes(query.toLowerCase())), [games, query])
   const installedById = useMemo(() => new Map(cat.installed.map(p => [p.id, p])), [cat.installed])
+  const availableUpdates = useMemo(() => cat.installed.flatMap(installed => {
+    const pkg = cat.packages.find(candidate => candidate.id === installed.id && candidate.sourceId === installed.source?.id)
+    return pkg && pkg.version !== installed.version ? [{ installed, pkg }] : []
+  }), [cat.installed, cat.packages])
+  const updatesById = useMemo(() => new Map(availableUpdates.map(({ installed, pkg }) => [installed.id, pkg])), [availableUpdates])
   const packagesFor = game => cat.packages.filter(p => p.games.includes(game?.id))
   const selectedPackage = packagesFor(selected)[0]
   const officialCatalogAdded = cat.sources.some(source => source.url === OFFICIAL_URL)
@@ -82,7 +87,7 @@ function App() {
   async function run(label, action, success) {
     if (!api) { setNotice('Preview mode — catalogs and installs run in the desktop app.'); return }
     setBusy(label)
-    if (label === 'install') setInstallProgress(null)
+    if (['install', 'update'].includes(label)) setInstallProgress(null)
     setNotice('')
     try {
       setCat(await action())
@@ -91,7 +96,23 @@ function App() {
       setNotice(cleanError(error))
     } finally {
       setBusy('')
-      if (label === 'install') setInstallProgress(null)
+      if (['install', 'update'].includes(label)) setInstallProgress(null)
+    }
+  }
+
+  async function updateAll() {
+    if (!api) { setNotice('Preview mode — catalogs and installs run in the desktop app.'); return }
+    setBusy('update-all')
+    setInstallProgress(null)
+    setNotice('')
+    try {
+      for (const { pkg } of availableUpdates) setCat(await api.catalog.install(pkg.sourceId, pkg.id))
+      setNotice('All packages are up to date.')
+    } catch (error) {
+      setNotice(cleanError(error))
+    } finally {
+      setBusy('')
+      setInstallProgress(null)
     }
   }
 
@@ -198,13 +219,21 @@ function App() {
   const installedPanel = <div className="panel-scroll">
     <div className="section-title">INSTALLED PACKAGES</div>
     {!cat.installed.length && <p className="panel-copy">Nothing installed yet.</p>}
-    {cat.installed.map(pkg => <div key={pkg.id} className="source-row">
+    {cat.installed.map(pkg => {
+      const update = updatesById.get(pkg.id)
+      const progress = installProgress?.packageId === pkg.id && ['update', 'update-all'].includes(busy) ? installProgress : null
+      return <div key={pkg.id} className="source-row">
       <Check size={15} className="ok" />
       <div className="source-text"><strong>{pkg.name} <em>v{pkg.version}</em></strong><span>From {pkg.catalogName} · {pkg.files.length} file(s), checksums verified</span><code>{pkg.path}</code></div>
+      {update && <button className={`row-update ${progress ? 'updating' : ''}`} disabled={!!busy} onClick={() => run('update', () => api.catalog.install(update.sourceId, update.id), `${pkg.name} updated.`)}>
+        {progress && <span className="install-progress-fill" style={{ width: `${Math.min(100, progress.done / progress.total * 100)}%` }} />}
+        <span className="install-progress-label">{progress ? `${(progress.done / 1048576).toFixed(1)} / ${(progress.total / 1048576).toFixed(1)} MB` : 'Update'}</span>
+      </button>}
       {pkg.launch && <button className="icon-button" aria-label="Launch" disabled={!!busy} onClick={() => launch(pkg)}><Play size={14} /></button>}
       <button className="icon-button" aria-label="Open folder" onClick={() => api?.openFolder(pkg.path)}><Folder size={14} /></button>
       <button className="icon-button" aria-label="Uninstall" disabled={!!busy} onClick={() => run('uninstall', () => api.catalog.uninstall(pkg.id), `${pkg.name} removed.`)}><Trash2 size={14} /></button>
-    </div>)}
+      </div>
+    })}
   </div>
 
   async function launch(pkg) {
@@ -223,7 +252,7 @@ function App() {
     <div className="shell">
       <aside className="sidebar">
         <div className="nav-group">
-          {[['Library', Gamepad2], ['Packages', Layers3], ['Downloads', Download], ['Settings', Settings]].map(([label, Icon]) => <button key={label} className={`nav-item ${tab === label ? 'active' : ''}`} onClick={() => setTab(label)}><Icon size={18} /><span>{label}</span></button>)}
+          {[['Library', Gamepad2], ['Packages', Layers3], ['Downloads', Download], ['Settings', Settings]].map(([label, Icon]) => <button key={label} className={`nav-item ${tab === label ? 'active' : ''}`} onClick={() => setTab(label)}><Icon size={18} /><span>{label}</span>{label === 'Downloads' && availableUpdates.length > 0 && <span className="nav-badge">{availableUpdates.length}</span>}</button>)}
         </div>
         <div className="sidebar-bottom"><div className="open-source"><ShieldCheck size={16} /><span>Open source. No ads.</span></div><span className="version">ModSpark · v0.1.0</span></div>
       </aside>
@@ -234,6 +263,8 @@ function App() {
           <div className="heading-actions">
           {tab === 'Packages'
             ? <button className="scan-button" onClick={() => run('refresh', () => api.catalog.refresh(), 'Catalogs refreshed.')} disabled={!!busy}><RefreshCw size={15} className={busy === 'refresh' ? 'spin' : ''} />Refresh catalogs</button>
+            : tab === 'Downloads'
+              ? <>{availableUpdates.length > 0 && <button className="scan-button" onClick={updateAll} disabled={!!busy}>{busy === 'update-all' ? 'Updating…' : `Update all (${availableUpdates.length})`}</button>}<button className="scan-button" onClick={scan} disabled={scanning}><RefreshCw size={15} className={scanning ? 'spin' : ''} />{scanning ? 'Scanning…' : 'Scan for games'}</button></>
             : <>
               {scannedAt && Number.isFinite(new Date(scannedAt).getTime()) && <span className="last-scanned">Last scanned <time dateTime={scannedAt}>{new Date(scannedAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}</time></span>}
               <button className="scan-button" onClick={scan} disabled={scanning}><RefreshCw size={15} className={scanning ? 'spin' : ''} />{scanning ? 'Scanning…' : 'Scan for games'}</button>
