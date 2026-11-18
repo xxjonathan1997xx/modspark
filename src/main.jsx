@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client'
 import { Download, Folder, Gamepad2, Layers3, Search, Settings, Sparkles, RefreshCw, Check, Circle, ShieldCheck, Trash2, Plus, AlertTriangle, Play } from 'lucide-react'
 import './styles.css'
 
+const OFFICIAL_URL = 'https://raw.githubusercontent.com/xxjonathan1997xx/modspark-catalog/main/catalog.json'
+const OFFICIAL_KEY = 'MCowBQYDK2VwAyEAZgCVC7ij799AAgYeXIxI5nXWKa8XzlczeaaizWgsd3o='
 // Browser-preview rows only. The desktop app replaces them with a real scan.
 const demos = [
   { id: 'steam:1091500', title: 'Cyberpunk 2077', source: 'Steam', icon: '2077' },
@@ -37,6 +39,7 @@ function App() {
   const installedById = useMemo(() => new Map(cat.installed.map(p => [p.id, p])), [cat.installed])
   const packagesFor = game => cat.packages.filter(p => p.games.includes(game?.id))
   const selectedPackage = packagesFor(selected)[0]
+  const officialCatalogAdded = cat.sources.some(source => source.url === OFFICIAL_URL)
 
   useEffect(() => {
     const onKey = e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setTab('Library'); searchRef.current?.focus() } }
@@ -63,6 +66,8 @@ function App() {
       setNotice(cleanError(error))
     } finally { setBusy('') }
   }
+
+  const addOfficialCatalog = () => run('official', () => api.catalog.addSource(OFFICIAL_URL, OFFICIAL_KEY), 'Official catalog added and verified.')
 
   async function scan() {
     setScanning(true)
@@ -112,6 +117,7 @@ function App() {
   const catalogPanel = <div className="panel-scroll">
     <div className="section-title">CATALOG SOURCES</div>
     {!cat.sources.length && <p className="panel-copy">No catalogs yet. Add a catalog URL and the publisher’s public key. ModSpark only loads catalogs whose signature matches that key.</p>}
+    {!officialCatalogAdded && <button className="quiet-button official-catalog-button" disabled={!!busy} onClick={addOfficialCatalog}>{busy === 'official' ? 'Adding official catalog…' : 'Add the official catalog'}</button>}
     {cat.sources.map(source => <div key={source.id} className="source-row">
       {source.error ? <AlertTriangle size={15} className="warn" /> : <ShieldCheck size={15} className="ok" />}
       <div className="source-text"><strong>{source.name || source.url}</strong><span>{source.error || `${source.packageCount} package(s) · signature verified`}</span><code>{source.url}</code></div>
@@ -214,7 +220,9 @@ function App() {
                 : <button className="install-button" disabled={!!busy || missing.length > 0} title={missing.length ? 'Install the missing requirements first' : ''} onClick={() => run('install', () => api.catalog.install(selectedPackage.sourceId, selectedPackage.id), `${selectedPackage.name} installed and verified.`)}><Download size={16} />{busy === 'install' ? 'Downloading and verifying…' : installed ? `Update to v${selectedPackage.version}` : 'Install package'}</button>}
             </> : <>
               <div className="empty-package"><span className="empty-mark"><Layers3 size={17} /></span><strong>No package yet</strong><p>{cat.sources.length ? 'None of your catalogs has a package for this game.' : 'Add a community catalog to find packages.'}</p></div>
-              <button className="quiet-button" onClick={() => setTab('Packages')}>{cat.sources.length ? 'Browse packages' : 'Add a catalog'}</button>
+              {cat.sources.length
+                ? <button className="quiet-button" onClick={() => setTab('Packages')}>Browse packages</button>
+                : <button className="quiet-button" disabled={!!busy} onClick={addOfficialCatalog}>{busy === 'official' ? 'Adding official catalog…' : 'Add the official catalog'}</button>}
             </>}
           </section>
           <section className="dependencies"><div className="section-title">REQUIREMENTS</div>
