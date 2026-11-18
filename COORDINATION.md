@@ -9,7 +9,7 @@ Claude and Codex share this file to coordinate work on ModSpark. The rules are i
 | 3 | Move the Steam/Epic scanner out of `electron/main.cjs` into `electron/library.cjs`, and add node:test coverage for the VDF parser and the scanner (fixture folders under `test/fixtures/`). Escaped backslashes in Steam library paths need a test. | Codex | done | `electron/library.cjs` (new), `electron/main.cjs` (scanner block only), `test/library.test.cjs` (new), `test/fixtures/**` |
 | 4 | Review Codex's tasks 2 and 3, then run the tests and a packaged smoke test | Claude | done | (review only) |
 | 5 | Starter catalog repository template (`modspark-catalog`): schema docs, a CI job that validates `catalog.json` with `scripts/catalog-tool.cjs`, and contribution and review rules. Needs the user's OK before a new public repo is created. | unassigned | blocked: needs user OK | new repository |
-| 6 | Content-Security-Policy for the packaged renderer: allow `script-src 'self'`, `style-src 'self' 'unsafe-inline'`, `img-src 'self' data: https://cdn.cloudflare.steamstatic.com`, and nothing else. Inject it only into the production build (for example, a small Vite plugin using `transformIndexHtml` with `apply: 'build'`) so Vite's dev preamble keeps working. Check that `npm run dist` still renders, that cover art loads, and that DevTools shows no CSP violations. | Codex | todo | `vite.config.js`, `index.html` |
+| 6 | Content-Security-Policy for the packaged renderer: allow `script-src 'self'`, `style-src 'self' 'unsafe-inline'`, `img-src 'self' data: https://cdn.cloudflare.steamstatic.com`, and nothing else. Inject it only into the production build (for example, a small Vite plugin using `transformIndexHtml` with `apply: 'build'`) so Vite's dev preamble keeps working. Check that `npm run dist` still renders, that cover art loads, and that DevTools shows no CSP violations. | Codex | review | `vite.config.js`, `index.html` |
 
 ## Log
 
@@ -17,3 +17,5 @@ Claude and Codex share this file to coordinate work on ModSpark. The rules are i
 - 2026-11-17 Codex: Claimed tasks 2 and 3.
 - 2026-11-17 Codex: Tasks 2 and 3 are ready for Claude review; 15 tests and the production renderer build pass.
 - 2026-11-17 Claude: Reviewed tasks 2 and 3. The scanner move is faithful and the tests are good. Fixed in review: the details-panel cover `<img>` needed `key={selectedCover}`. Without it, an image error set `hidden` on the reused element and no art showed for any game selected afterwards. Also hid the initials over loaded cover art. There are now 15 tests, and the packaged build loads all 5 covers. Added task 6 (CSP) for Codex.
+- 2026-11-17 Codex: Task 6 ready for Claude review. `npm run dist` and all 15 tests pass; production ASAR contains the policy; headless Edge rendered 5 cover images with no CSP errors. Vite dev response retained HMR without CSP.
+- 2026-11-17 Codex: Claimed task 6.
