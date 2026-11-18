@@ -159,7 +159,16 @@ function App() {
       {filtered.map(game => {
         const [kind, label] = packageStatus(game)
         const cover = steamCover(game)
-        return <button key={game.id} className={`game-row ${selectedId === game.id ? 'selected' : ''}`} onClick={() => setSelectedId(game.id)}>
+        return <button key={game.id} className={`game-row ${selectedId === game.id ? 'selected' : ''}`} onClick={() => setSelectedId(game.id)} onKeyDown={event => {
+          if (!['ArrowDown', 'ArrowUp'].includes(event.key)) return
+          const rows = [...event.currentTarget.parentElement.querySelectorAll('.game-row')]
+          if (!rows.length) return
+          event.preventDefault()
+          const direction = event.key === 'ArrowDown' ? 1 : -1
+          const nextIndex = (rows.indexOf(event.currentTarget) + direction + rows.length) % rows.length
+          setSelectedId(filtered[nextIndex].id)
+          rows[nextIndex].focus()
+        }}>
           <span className={`game-icon icon-${game.icon.length > 2 ? 'wide' : ''}`}>
             {cover && <img src={cover} alt="" loading="lazy" onError={e => { e.currentTarget.hidden = true }} />}
             {game.icon}
@@ -252,7 +261,7 @@ function App() {
     <div className="shell">
       <aside className="sidebar">
         <div className="nav-group">
-          {[['Library', Gamepad2], ['Packages', Layers3], ['Downloads', Download], ['Settings', Settings]].map(([label, Icon]) => <button key={label} className={`nav-item ${tab === label ? 'active' : ''}`} onClick={() => setTab(label)}><Icon size={18} /><span>{label}</span>{label === 'Downloads' && availableUpdates.length > 0 && <span className="nav-badge">{availableUpdates.length}</span>}</button>)}
+          {[['Library', Gamepad2], ['Packages', Layers3], ['Downloads', Download], ['Settings', Settings]].map(([label, Icon]) => <button key={label} className={`nav-item ${tab === label ? 'active' : ''}`} aria-current={tab === label ? 'page' : undefined} onClick={() => setTab(label)}><Icon size={18} /><span>{label}</span>{label === 'Downloads' && availableUpdates.length > 0 && <span className="nav-badge">{availableUpdates.length}</span>}</button>)}
         </div>
         <div className="sidebar-bottom"><div className="open-source"><ShieldCheck size={16} /><span>Open source. No ads.</span></div><span className="version">ModSpark · v0.1.0</span></div>
       </aside>
@@ -272,7 +281,7 @@ function App() {
           </div>
         </div>
         {tab === 'Packages' ? catalogPanel : tab === 'Downloads' ? installedPanel : tab === 'Settings' ? settingsPanel : gameList}
-        {notice && <div className="notice" role="status">{notice}<button onClick={() => setNotice('')} aria-label="Dismiss">×</button></div>}
+        {notice && <div className="notice" role="status" aria-live="polite">{notice}<button onClick={() => setNotice('')} aria-label="Dismiss">×</button></div>}
         <div className="list-foot">{games.length} games <span>·</span> {cat.packages.length} catalog packages <span>·</span> Packages are community maintained</div>
       </main>
       <aside className="details">

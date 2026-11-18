@@ -43,3 +43,5 @@ button:disabled{opacity:.55;cursor:default}
 .install-button.installing{position:relative;overflow:hidden;background:#203427}.install-progress-fill{position:absolute;inset:0 auto 0 0;background:#65d77f;opacity:.45}.install-progress-label{position:relative}
 
 .nav-badge{margin-left:auto;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#6bdc83;color:#102016;display:grid;place-items:center;font-size:10px;font-weight:700}.row-update{position:relative;overflow:hidden;flex:none;border:1px solid #3a423c;border-radius:5px;background:#1a1f1c;color:#d5dcd7;padding:6px 9px;font-size:10px;cursor:pointer}.row-update:hover{background:#222824;border-color:#4b574e}.row-update.updating{background:#203427}.row-update .install-progress-fill{opacity:.45}
+
+button:focus-visible,input:focus-visible{outline:2px solid #75d98a;outline-offset:2px}.searchbar input:focus-visible{outline-offset:-2px}@media(prefers-reduced-motion:reduce){.spin{animation:none}}
