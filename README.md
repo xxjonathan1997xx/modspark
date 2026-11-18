@@ -14,7 +14,12 @@ ModSpark is an open-source Windows desktop app concept for finding installed gam
 - Detects each package's prerequisites (such as the VC++ runtime) and can run a hash-verified installer after the user confirms.
 - Automatic app update checks and background downloads when a generic release feed is configured with `MODSPARK_UPDATE_URL`.
 
-No catalog ships with the app. Someone has to publish a signed catalog (see [docs/CATALOG.md](docs/CATALOG.md)) before users have packages to install. Updates require a publisher release feed; none is configured in this starter project. Windows releases also need publisher code signing before distribution. The UI reports the missing feed instead of pretending updates work.
+The official catalog is [modspark-catalog](https://github.com/xxjonathan1997xx/modspark-catalog). Add it in **Packages → Add catalog** with:
+
+- **URL:** `https://raw.githubusercontent.com/xxjonathan1997xx/modspark-catalog/main/catalog.json`
+- **Key:** `MCowBQYDK2VwAyEAZgCVC7ij799AAgYeXIxI5nXWKa8XzlczeaaizWgsd3o=`
+
+It starts empty, and packages arrive through reviewed pull requests. Other catalogs can be added the same way. Updates require a publisher release feed; none is configured in this starter project. Windows releases also need publisher code signing before distribution. The UI reports the missing feed instead of pretending updates work.
 
 ## Run locally
 

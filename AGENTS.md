@@ -35,7 +35,7 @@ Claude (Claude Code) and Codex both work on this repo, and `COORDINATION.md` is 
 
 ## Open items (need people or accounts, not code)
 
-- A public catalog repository and its signing key.
+- Packages for the official catalog (github.com/xxjonathan1997xx/modspark-catalog). Its signing key is kept offline by the user and is never in any repo or CI.
 - A code-signing certificate.
 
 ## History
