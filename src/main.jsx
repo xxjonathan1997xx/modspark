@@ -192,7 +192,7 @@ function App() {
       <aside className="details">
         {selected ? <>
           <div className="game-art">
-            {selectedCover && <img className="game-art-cover" src={selectedCover} alt="" onError={e => { e.currentTarget.hidden = true }} />}
+            {selectedCover && <img key={selectedCover} className="game-art-cover" src={selectedCover} alt="" onError={e => { e.currentTarget.hidden = true }} />}
             <div className="art-orbit" /><div className="art-initial">{selected.icon}</div><div className="art-caption">{selected.title}</div>
           </div>
           <h2>{selected.title}</h2>
